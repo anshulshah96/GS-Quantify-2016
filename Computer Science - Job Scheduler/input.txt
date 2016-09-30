@@ -7,13 +7,9 @@ job 1 2 orderProcessor XfGie 2 2
 assign 2 1
 
 job 10 1 marketDataProcessor QfyIRX 100 100
+job 12 2 marketDataProcessor QfyIRX 95 100
 
-assign 10 2
+assign 13 2
 
-query 1 2
+ada
 
-query 2 1
-
-query 11 1
-
-query 3 orderProcessor

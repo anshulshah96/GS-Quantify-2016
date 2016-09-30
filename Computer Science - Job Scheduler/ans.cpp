@@ -32,8 +32,7 @@ struct jd
 	string instr;
 	ll importance;
 	ll duration;
-	ll cpustart;
-	jd(ll i,ll t,string o,string ins, ll imp,ll dur)
+	jd(ll t,ll i,string o,string ins,ll imp,ll dur)
 	{
 		id = i;
 		timestamp = t;
@@ -46,8 +45,9 @@ struct jd
 struct snap
 {
 	ll ctime;
-	std::vector< jd > adds;
-	std::vector< jd > rems;
+	std::vector< jd > addj;
+	// std::vector< jd > remj;
+	std::vector< string > remj;
 };
 
 struct qcompare{
@@ -63,37 +63,78 @@ struct qcompare{
 		return !ans;
 	}
 };
-struct cpucompare{
-	bool operator()(const jd& l, const jd& r)
-	{
-		bool ans;
+// struct cpucompare{
+// 	bool operator()(const jd& l, const jd& r)
+// 	{
+// 		bool ans;
 
-		ans = l.cpustart + l.duration < r.cpustart+r.duration;
+// 		ans = l.cpustart + l.duration < r.cpustart+r.duration;
 
-		return !ans;
-	}
-};
+// 		return !ans;
+// 	}
+// };
 
 std::vector< snap > snap_vec;
 string temp;
 
 priority_queue< jd, vector<jd>, qcompare > aspq;
-priority_queue< jd, vector<jd>, cpucompare > cpupq;
+priority_queue< ll, vector<ll>, greater<ll> > cpupq;
 
-void add_job(){
-	
+void add_job(jd job){
+	if(snap_vec.empty() || snap_vec.back().ctime<job.timestamp)
+	{
+		snap sn;
+		sn.ctime = job.timestamp;
+		sn.addj.pb(job);
+		snap_vec.pb(sn);
+	}
+	else{
+		snap_vec.back().addj.pb(job);
+	}
 }
-
+void rem_job(jd job){
+	if(snap_vec.empty() || snap_vec.back().ctime<job.timestamp)
+	{
+		snap sn;
+		sn.ctime = job.timestamp;
+		sn.remj.pb(job.orig);
+		snap_vec.pb(sn);
+	}
+	else{
+		snap_vec.back().remj.pb(job.orig);
+	}
+}
+void print_job(jd job){
+	cout<<"job "<<job.timestamp<<" "<<job.id<<" "<<job.orig<<" "<<job.instr<<" "<<job.importance<<" "<<job.duration<<endl;
+}
 void pre_time(ll times)
 {
 	if(cpupq.empty()) return;
-	jd top = cpupq
-	while()
+	while(cpupq.top() <= times){
+		cpu_free++;
+		cpupq.pop();
+	}
+}
+
+void see_snaps(ll times)
+{
+	cout<<"------------------";
+	cout<<endl<<" FOR "<<times<<endl;
+	cout<<"------------------";
+	for(int i = 0;i<snap_vec.size();i++)
+	{
+		snap sn = snap_vec[i];
+		cout<<endl<<"snap "<<sn.ctime<<endl;
+		for(int  j = 0;j<sn.addj.size();j++)
+			print_job(sn.addj[j]);
+		for(int  j=  0;j<sn.remj.size();j++)
+			cout<<sn.remj[j]<<endl;
+	}
 }
 int main(){
 	freopen("input.txt","r",stdin);
 	cin>>temp;
-	cin>>cpus_tot;
+	cin>>cpu_tot;
 	cpu_free = cpu_tot;
 
 	while(cin)
@@ -108,8 +149,29 @@ int main(){
 			string orig,instr;
 			cin>>orig>>instr;
 			cin>>imp>>dur;
-			pre_time(times);	// do remaining tasks upto this timestamp
-			aspq.push(jd(times,id,orig,instr,imp,dur));
+			// pre_time(times);	// do remaining tasks upto this timestamp
+			jd job = jd(times,id,orig,instr,imp,dur);
+			aspq.push(job);
+			add_job(job);
+
+			see_snaps(times);
+		}
+		else if(s[0] == 'a')
+		{
+			ll times,k;
+			cin>>times>>k;
+			pre_time(times);   // do remaining tasks upto this timestamp
+			k = min(cpu_free,k);
+			while(!aspq.empty() && k)
+			{
+				k--;
+				jd job = aspq.top();
+				aspq.pop();
+				cpupq.push(job.duration+times);
+				print_job(job);
+				rem_job(job);
+			}
+			see_snaps(times);
 		}
 	}
 }
