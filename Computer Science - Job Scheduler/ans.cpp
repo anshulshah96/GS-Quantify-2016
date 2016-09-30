@@ -41,13 +41,17 @@ struct jd
 		importance = imp;
 		duration = dur;
 	}
+	jd()
+	{}
 };
 struct snap
 {
 	ll ctime;
-	std::vector< jd > addj;
-	// std::vector< jd > remj;
-	std::vector< string > remj;
+	// std::vector< jd > addj;
+	// std::vector< string > remj;
+	bool isaddj;
+	jd addj;
+	string remj;
 };
 
 struct qcompare{
@@ -63,46 +67,33 @@ struct qcompare{
 		return !ans;
 	}
 };
-// struct cpucompare{
-// 	bool operator()(const jd& l, const jd& r)
-// 	{
-// 		bool ans;
 
-// 		ans = l.cpustart + l.duration < r.cpustart+r.duration;
-
-// 		return !ans;
-// 	}
-// };
 
 std::vector< snap > snap_vec;
 string temp;
 
 priority_queue< jd, vector<jd>, qcompare > aspq;
+
+int qkptr = 0;
+priority_queue< jd, vector<jd>, qcompare > qkpq;
 priority_queue< ll, vector<ll>, greater<ll> > cpupq;
 
+int qoptr = 0;
+std::map< string, priority_queue<jd, vector<jd>, qcompare> > qomp;
+
 void add_job(jd job){
-	if(snap_vec.empty() || snap_vec.back().ctime<job.timestamp)
-	{
 		snap sn;
 		sn.ctime = job.timestamp;
-		sn.addj.pb(job);
+		sn.addj = job;
+		sn.isaddj = true;
 		snap_vec.pb(sn);
-	}
-	else{
-		snap_vec.back().addj.pb(job);
-	}
 }
-void rem_job(jd job){
-	if(snap_vec.empty() || snap_vec.back().ctime<job.timestamp)
-	{
+void rem_job(string jorig,ll times){
 		snap sn;
-		sn.ctime = job.timestamp;
-		sn.remj.pb(job.orig);
+		sn.ctime = times;
+		sn.remj = jorig;
+		sn.isaddj = false;
 		snap_vec.pb(sn);
-	}
-	else{
-		snap_vec.back().remj.pb(job.orig);
-	}
 }
 void print_job(jd job){
 	cout<<"job "<<job.timestamp<<" "<<job.id<<" "<<job.orig<<" "<<job.instr<<" "<<job.importance<<" "<<job.duration<<endl;
@@ -110,27 +101,38 @@ void print_job(jd job){
 void pre_time(ll times)
 {
 	if(cpupq.empty()) return;
-	while(cpupq.top() <= times){
+	while(!cpupq.empty() && cpupq.top() <= times){
 		cpu_free++;
 		cpupq.pop();
 	}
 }
-
 void see_snaps(ll times)
 {
 	cout<<"------------------";
 	cout<<endl<<" FOR "<<times<<endl;
-	cout<<"------------------";
+	cout<<"------------------"<<endl;
 	for(int i = 0;i<snap_vec.size();i++)
 	{
-		snap sn = snap_vec[i];
-		cout<<endl<<"snap "<<sn.ctime<<endl;
-		for(int  j = 0;j<sn.addj.size();j++)
-			print_job(sn.addj[j]);
-		for(int  j=  0;j<sn.remj.size();j++)
-			cout<<sn.remj[j]<<endl;
+		snap sn= snap_vec[i];
+		cout<<endl<<sn.ctime<<": "<<endl;
+		if(sn.isaddj){
+			print_job(sn.addj);
+		}
+		else
+			cout<<sn.remj<<endl;
 	}
 }
+
+bool check_no(string str)
+{
+	for(int i = 0;i<str.size();i++){
+		if(str[i]>='0' && str[i]<='9'){}
+		else return false;
+	}
+
+	return true;
+}
+
 int main(){
 	freopen("input.txt","r",stdin);
 	cin>>temp;
@@ -149,29 +151,108 @@ int main(){
 			string orig,instr;
 			cin>>orig>>instr;
 			cin>>imp>>dur;
-			// pre_time(times);	// do remaining tasks upto this timestamp
 			jd job = jd(times,id,orig,instr,imp,dur);
 			aspq.push(job);
 			add_job(job);
-
-			see_snaps(times);
+			// see_snaps(times);
 		}
 		else if(s[0] == 'a')
 		{
 			ll times,k;
 			cin>>times>>k;
+
 			pre_time(times);   // do remaining tasks upto this timestamp
-			k = min(cpu_free,k);
-			while(!aspq.empty() && k)
+
+			// which top k have to be removed
+			while(!aspq.empty() && k>0 && cpu_free>0)
 			{
 				k--;
 				jd job = aspq.top();
 				aspq.pop();
-				cpupq.push(job.duration+times);
+				if(job.duration > 0){
+					cpupq.push(job.duration+times);
+					cpu_free--;
+				}
 				print_job(job);
-				rem_job(job);
+				rem_job(job.orig,times);
 			}
-			see_snaps(times);
+
+			// cout<<"BY ASSIGN "<<times<<endl;
+			// see_snaps(times);
+		}
+		else if(s[0] == 'q')
+		{
+			ll times;
+			cin>>times;
+			string s2;
+			cin>>s2;
+			//nos. test
+			if(check_no(s2))
+			{
+				stringstream ss;
+				ss<<s2;
+				ll k;
+				ss>>k;
+
+				while(qkptr<snap_vec.size() && snap_vec[qkptr].ctime<=times)
+				{
+					snap sn = snap_vec[qkptr];
+					if(sn.isaddj)
+					{
+						qkpq.push(sn.addj);
+					}
+					else
+					{
+						qkpq.pop();
+					}
+					qkptr++;
+				}
+
+				queue< jd > tempq;
+				while(k>0 && !qkpq.empty())
+				{
+					k--;
+					tempq.push(qkpq.top());
+					qkpq.pop();
+				}
+
+				while(!tempq.empty())
+				{
+					jd top = tempq.front();
+					print_job(top);
+					qkpq.push(top);
+					tempq.pop();
+				}
+			}
+			else{
+
+				while(qoptr<snap_vec.size() && snap_vec[qoptr].ctime<=times)
+				{
+					snap sn = snap_vec[qoptr];
+					if(sn.isaddj)
+					{
+						// qkpq.push(sn.addj);
+						qomp[sn.addj.orig].push(sn.addj);
+					}
+					else
+					{
+						// qkpq.pop();
+						qomp[sn.remj].pop();
+					}
+					qoptr++;
+				}
+
+				priority_queue< jd, vector<jd>, qcompare > qtemp = qomp[s2];
+
+				while(!qtemp.empty())
+				{
+					jd top = qtemp.top();
+					print_job(top);
+					qtemp.pop();
+				}
+			}
 		}
 	}
+
+	see_snaps(11000LL);
 }
