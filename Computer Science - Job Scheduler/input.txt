@@ -1,25 +1,19 @@
-cpus 2
-job 0 1 m1 II 8 1
-job 2 1 m2 I2 4 4
-assign 3 1
-job 4 2 m1 I2 9 2
-job 4 3 m1 I3 9 1
-assign 4 1
-job 5 4 m1 II 9 10
-query 5 3
-job 7 1 m3 I4 10 1
-job 9 5 m1 I4 6 1
-assign 9 5
-job 10 2 m3 II 6 1
-job 10 2 m2 I4 6 2
-query 10 m2
-query 11 7
-assign 12 2
-job 14 3 m2 I2 6 3
-job 17 3 m3 I4 2 4
-job 18 7 m1 I3 2 1
-assign 20 3
-job 21 4 m3 I3 8 2
-job 22 4 m2 I3 7 3
-assign 29 2
-query 28 10
+cpus 10
+
+job 1 1 orderProcessor BExvg 1 1
+
+job 1 2 orderProcessor XfGie 2 2
+
+assign 2 1
+
+job 10 1 marketDataProcessor QfyIRX 100 100
+
+assign 10 2
+
+query 1 2
+
+query 2 1
+
+query 11 1
+
+query 3 orderProcessor

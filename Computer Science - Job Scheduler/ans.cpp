@@ -20,7 +20,9 @@ using namespace std;
 
 typedef long long ll;
 
-const int MAX = 1000000;
+const int RTN = 3300;
+const int RTH = 1000;
+const int MAX = 10000005;
 ll cpu_tot, cpu_free; 
 ll tm_asg = 0 ,tm_qt = 0, tm_qo = 0;
 
@@ -50,40 +52,40 @@ struct snap
 	// std::vector< jd > addj;
 	// std::vector< string > remj;
 	bool isaddj;
-	jd addj;
+	jd* addj;
 	string remj;
 };
 
 struct qcompare{
-	bool operator()(const jd& l, const jd& r)
+	bool operator()(jd* l, jd* r)
 	{
 		bool ans;
-		if(l.importance != r.importance)
-			ans = l.importance > r.importance;
-		else if (l.timestamp != r.timestamp)
-			ans = l.timestamp < r.timestamp;
+		if(l->importance != r->importance)
+			ans = l->importance > r->importance;
+		else if (l->timestamp != r->timestamp)
+			ans = l->timestamp < r->timestamp;
 		else 
-			ans = l.duration < r.duration;
+			ans = l->duration < r->duration;
 		return !ans;
 	}
 };
 
-
 std::vector< snap > snap_vec;
-string temp;
+priority_queue< jd*, vector<jd*>, qcompare > aspq;
+map< string, priority_queue< jd*, vector<jd*>, qcompare > > ospq;
 
-priority_queue< jd, vector<jd>, qcompare > aspq;
-
-int qkptr = 0;
-priority_queue< jd, vector<jd>, qcompare > qkpq;
 priority_queue< ll, vector<ll>, greater<ll> > cpupq;
 
-int qoptr = 0;
-std::map< string, priority_queue<jd, vector<jd>, qcompare> > qomp;
+ll timearr[RTN];
+int snap_pos[RTN];
+priority_queue< jd*, vector<jd*>, qcompare > qkpqs[RTN];
+map< string, priority_queue< jd*, vector<jd*>, qcompare > > qomps[RTN];
 
-void add_job(jd job){
+jd* mapjob[MAX];
+
+void add_job(jd* job){
 		snap sn;
-		sn.ctime = job.timestamp;
+		sn.ctime = job->timestamp;
 		sn.addj = job;
 		sn.isaddj = true;
 		snap_vec.pb(sn);
@@ -95,8 +97,8 @@ void rem_job(string jorig,ll times){
 		sn.isaddj = false;
 		snap_vec.pb(sn);
 }
-void print_job(jd job){
-	cout<<"job "<<job.timestamp<<" "<<job.id<<" "<<job.orig<<" "<<job.instr<<" "<<job.importance<<" "<<job.duration<<endl;
+void print_job(jd* job){
+	cout<<"job "<<job->timestamp<<" "<<job->id<<" "<<job->orig<<" "<<job->instr<<" "<<job->importance<<" "<<job->duration<<endl;
 }
 void pre_time(ll times)
 {
@@ -133,12 +135,25 @@ bool check_no(string str)
 	return true;
 }
 
+int rtcnt = 0;
+void make(ll times)
+{
+	if(rtcnt == RTN) return;
+	// timearr[rtcnt] = times;
+	qkpqs[rtcnt] = aspq;
+	qomps[rtcnt] = ospq;
+	snap_pos[rtcnt] = snap_vec.size()-1;
+	rtcnt++;
+}
+
 int main(){
 	freopen("input.txt","r",stdin);
+	string temp;
 	cin>>temp;
 	cin>>cpu_tot;
 	cpu_free = cpu_tot;
-
+	int cnt = RTH;
+	ll ptimes = 0;
 	while(cin)
 	{
 		string s;
@@ -146,18 +161,28 @@ int main(){
 		if(s == "") continue;
 		else if(s[0]=='j')
 		{
+			cnt++;
 			ll times,id,imp,dur;
 			cin>>times>>id;
 			string orig,instr;
 			cin>>orig>>instr;
 			cin>>imp>>dur;
-			jd job = jd(times,id,orig,instr,imp,dur);
-			aspq.push(job);
-			add_job(job);
+
+			mapjob[cnt] = new jd(times,id,orig,instr,imp,dur);
+			aspq.push(mapjob[cnt]);
+			ospq[orig].push(mapjob[cnt]);
+			add_job(mapjob[cnt]);
 			// see_snaps(times);
+			
+			if(cnt > RTH)
+			{
+				cnt = 1;
+				make(times);
+			}
 		}
 		else if(s[0] == 'a')
 		{
+			cnt++;
 			ll times,k;
 			cin>>times>>k;
 
@@ -167,18 +192,22 @@ int main(){
 			while(!aspq.empty() && k>0 && cpu_free>0)
 			{
 				k--;
-				jd job = aspq.top();
+				jd* job = aspq.top();
 				aspq.pop();
-				if(job.duration > 0){
-					cpupq.push(job.duration+times);
+				ospq[job->orig].pop();
+				if(job->duration > 0){
+					cpupq.push(job->duration+times);
 					cpu_free--;
 				}
 				print_job(job);
-				rem_job(job.orig,times);
+				rem_job(job->orig,times);
 			}
 
-			// cout<<"BY ASSIGN "<<times<<endl;
-			// see_snaps(times);
+			if(cnt > RTH)
+			{
+				cnt = 1;
+				make(times);
+			}
 		}
 		else if(s[0] == 'q')
 		{
@@ -186,14 +215,23 @@ int main(){
 			cin>>times;
 			string s2;
 			cin>>s2;
-			//nos. test
+
+			int rtitr = 0;
+			while(snap_vec[snap_pos[rtitr]].ctime <= times && rtitr<rtcnt)
+				rtitr++;
+			rtitr--;
+
+			// cout<<rtitr<<endl;
+
 			if(check_no(s2))
 			{
 				stringstream ss;
 				ss<<s2;
 				ll k;
 				ss>>k;
+				int qkptr = snap_pos[rtitr]+1;
 
+				priority_queue< jd*, vector<jd*>, qcompare > qkpq = qkpqs[rtitr];
 				while(qkptr<snap_vec.size() && snap_vec[qkptr].ctime<=times)
 				{
 					snap sn = snap_vec[qkptr];
@@ -208,7 +246,7 @@ int main(){
 					qkptr++;
 				}
 
-				queue< jd > tempq;
+				queue< jd* > tempq;
 				while(k>0 && !qkpq.empty())
 				{
 					k--;
@@ -218,41 +256,40 @@ int main(){
 
 				while(!tempq.empty())
 				{
-					jd top = tempq.front();
+					jd* top = tempq.front();
 					print_job(top);
 					qkpq.push(top);
 					tempq.pop();
 				}
 			}
 			else{
-
+				int qoptr = snap_pos[rtitr] + 1;
+				
+				map< string, priority_queue< jd*, vector<jd*>, qcompare > > qomp = qomps[rtitr];
 				while(qoptr<snap_vec.size() && snap_vec[qoptr].ctime<=times)
 				{
 					snap sn = snap_vec[qoptr];
 					if(sn.isaddj)
 					{
-						// qkpq.push(sn.addj);
-						qomp[sn.addj.orig].push(sn.addj);
+						qomp[sn.addj->orig].push(sn.addj);
 					}
 					else
 					{
-						// qkpq.pop();
 						qomp[sn.remj].pop();
 					}
 					qoptr++;
 				}
 
-				priority_queue< jd, vector<jd>, qcompare > qtemp = qomp[s2];
+				priority_queue< jd*, vector<jd*>, qcompare > qtemp = qomp[s2];
 
 				while(!qtemp.empty())
 				{
-					jd top = qtemp.top();
+					jd* top = qtemp.top();
 					print_job(top);
 					qtemp.pop();
 				}
 			}
 		}
 	}
-
-	see_snaps(11000LL);
+	// see_snaps(11000LL);
 }
