@@ -19,7 +19,6 @@ numerical_fields = [
 ]
 
 categorical_fields = [
-	'isin',
 	'issuer',
 	'market',
 	'collateralType',
@@ -70,31 +69,20 @@ def get_bool( s ):
 
 def preprocess(data):
 	data = clean(data)
-	# test_data = clean( test_data )
-	# target_data = training_data['Risk_Stripe']
-	# training_data = training_data.drop( 'Risk_Stripe', axis=1 )
-	# print training_data
-	# print test_data
-	# training_data, test_data = impute( training_data, test_data, 'mean' )
-	# training_data, test_data = tokenize( training_data, test_data )
-	# training_data, test_data = normalize( training_data, test_data )
-	return (data)
+	# data = impute(data, 'mean' )
+	# data = tokenize(data)
+	# data = normalize(data)
+	return data
 
-def clean( data ):
-	data.set_index( 'isin', drop=True, inplace=True)
+def clean(data):
 	for f in numerical_fields:
-		data[f] = data[f].
-
+		data[f] = data[f].map(str).map(get_num)
 	for f in categorical_fields:
-		if f in data:
-			data[f] = data[f].map(str).map(get_num)
-
+		data[f] = data[f].map(str).map(get_num)
 	for f in date_fields:
 		data[f] = data[f].map(str).map(get_timestamp)
-
 	for f in bool_fields:
 		data[f] = data[f].map(str).map(get_bool)
-	# print data
 	return data
 
 def impute( training_data, test_data, mode = 'mean' ):
@@ -186,9 +174,9 @@ def normalize(data):
 	return training_data, test_data
 
 def prepare_data():
-	data = pd.read_csv( 'data/Bond_Metadata.csv' )
+	data = pd.read_csv( 'data/Bond_Metadata.csv',index_col='isin')
 	preprocess(data)
-	pickle.dump(data, open( "objects/clean_training_data.p", "wb" ) )
+	# pickle.dump(data, open( "objects/clean_training_data.p", "wb" ) )
 	# pickle.dump( target_data, open( "objects/clean_target_data.p", "wb" ) )
 	# pickle.dump( test_data, open( "objects/clean_test_data.p", "wb" ) )
 
