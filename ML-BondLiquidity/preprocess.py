@@ -11,37 +11,42 @@ import pickle
 import os
 
 numerical_fields = [
-	'SP_rating',
-	'Moody_rating',
-	'Seniority',
-	'Days_to_Settle',
-	'Coupon_Frequency',
-	'Ticker'
+	'amtIssued',
+	'amtOutstanding',
+	'coupon',
+	'ratingAgency1Rating',
+	'ratingAgency2Rating',
 ]
 
 categorical_fields = [
-	'Currency',
-	'Collateral_Type',
-	'Coupon_Type',
-	'Industry_Group',
-	'Industry_Sector',
-	'Industry_SubGroup',
-	'Issuer_Name',
-	'Country_Of_Domicile',
-	'Risk_Stripe'
+	'isin',
+	'issuer',
+	'market',
+	'collateralType',
+	'couponFrequency',
+	'couponType',
+	'industryGroup',
+	'industrySector',
+	'industrySubgroup',
+	'maturityType',
+	'securityType',
+	'paymentRank',
+	'ratingAgency1Watch',
+	'ratingAgency2Watch',
 ]
 
 bool_fields = [
-	'Is_Emerging_Market',
-	'Callable'
+	'144aFlag',
 ]
 
 date_fields = [
-	'Issue_Date',
-	'Maturity_Date'
+	'issueDate',
+	'maturity',
+	'ratingAgency1EffectiveDate',
+	'ratingAgency2EffectiveDate'
 ]
 
-def get_num( s ):
+def get_num(s):
 	x = ''.join( e for e in s if e.isdigit() )
 	if x == '':
 		return np.nan
@@ -63,24 +68,22 @@ def get_bool( s ):
 	if s == 'Y':
 		return 1
 
-def preprocess( meta_data ):
-	meta_data = clean( meta_data )
-	test_data = clean( test_data )
-	target_data = meta_data['Risk_Stripe']
-	meta_data = meta_data.drop( 'Risk_Stripe', axis=1 )
-	# print meta_data
+def preprocess(data):
+	data = clean(data)
+	# test_data = clean( test_data )
+	# target_data = training_data['Risk_Stripe']
+	# training_data = training_data.drop( 'Risk_Stripe', axis=1 )
+	# print training_data
 	# print test_data
-	meta_data, test_data = impute( meta_data, test_data, 'mean' )
-	# meta_data, test_data = tokenize( meta_data, test_data )
-	meta_data, test_data = normalize( meta_data, test_data )
-	return (meta_data, target_data, test_data)
+	# training_data, test_data = impute( training_data, test_data, 'mean' )
+	# training_data, test_data = tokenize( training_data, test_data )
+	# training_data, test_data = normalize( training_data, test_data )
+	return (data)
 
 def clean( data ):
-	data.set_index( 'ISIN', drop=True, inplace='True' )
-
+	data.set_index( 'isin', drop=True, inplace=True)
 	for f in numerical_fields:
-		if f in data:
-			data[f] = data[f].map(str).map(get_num)
+		data[f] = data[f].
 
 	for f in categorical_fields:
 		if f in data:
@@ -91,29 +94,29 @@ def clean( data ):
 
 	for f in bool_fields:
 		data[f] = data[f].map(str).map(get_bool)
-
+	# print data
 	return data
 
-def impute( meta_data, test_data, mode = 'mean' ):
+def impute( training_data, test_data, mode = 'mean' ):
 	if mode == 'delete':
 		data = delete_missing( data )
 		
 	if mode == 'mean':
 		imp = Imputer(missing_values=np.nan, strategy='mean', axis=0)
-		imp = imp.fit( meta_data )
-		values = imp.transform( meta_data )
-		meta_data = pd.DataFrame( values, index=meta_data.index, columns=meta_data.columns )
+		imp = imp.fit( training_data )
+		values = imp.transform( training_data )
+		training_data = pd.DataFrame( values, index=training_data.index, columns=training_data.columns )
 		values = imp.transform( test_data )
 		test_data = pd.DataFrame( values, index=test_data.index, columns=test_data.columns )
-		for c in meta_data:
-			meta_data[c] = meta_data[c].map(int)
+		for c in training_data:
+			training_data[c] = training_data[c].map(int)
 		for c in test_data:
 			test_data[c] = test_data[c].map(int)
 
 	if mode == 'approximate':
 		data = approximate_missing( data )
 
-	return (meta_data, test_data)
+	return (training_data, test_data)
 
 def delete_missing_values( data ):
 	return data	
@@ -142,17 +145,17 @@ def approximate_missing_values( data ):
 
 	return data
 
-def tokenize( meta_data, test_data ):
-	# print meta_data.shape
+def tokenize( training_data, test_data ):
+	# print training_data.shape
 	if 'Risk_Stripe' in categorical_fields:
 		categorical_fields.remove( 'Risk_Stripe' )
 	
 	
 	for c in categorical_fields:
-		meta_data[c] = meta_data[c].map(str)
+		training_data[c] = training_data[c].map(str)
 		test_data[c] = test_data[c].map(str)
 
-	cat_data = meta_data[categorical_fields]
+	cat_data = training_data[categorical_fields]
 	ts_cat_data = test_data[categorical_fields]
 	# print cat_data.shape
 	vec = DictVectorizer()
@@ -162,7 +165,7 @@ def tokenize( meta_data, test_data ):
 	ts_cat_data_array = vec.transform( ts_cat_data_dict ).toarray()
 	# print tr_cat_data_array.shape
 	# print ts_cat_data_array.shape
-	non_cat_data = meta_data.drop( categorical_fields, axis=1 )
+	non_cat_data = training_data.drop( categorical_fields, axis=1 )
 	non_cat_data = np.array( non_cat_data ).astype(np.float)
 	new_tr_data = np.concatenate( (tr_cat_data_array, non_cat_data), axis=1 )
 	# print new_tr_data.shape
@@ -170,27 +173,23 @@ def tokenize( meta_data, test_data ):
 	non_cat_data = np.array( non_cat_data ).astype(np.float)
 	new_ts_data = np.concatenate( (ts_cat_data_array, non_cat_data), axis=1 )
 	# print new_ts_data.shape
-	new_tr_data = pd.DataFrame( new_tr_data, index=meta_data.index )
+	new_tr_data = pd.DataFrame( new_tr_data, index=training_data.index )
 	new_ts_data = pd.DataFrame( new_ts_data, index=test_data.index )
 	return new_tr_data, new_ts_data
 
-def normalize( meta_data, test_data ):
+def normalize(data):
 	scaler = StandardScaler()
-	values = scaler.fit_transform( meta_data )
-	meta_data = pd.DataFrame( values, columns=meta_data.columns, index=meta_data.index )
+	values = scaler.fit_transform( training_data )
+	training_data = pd.DataFrame( values, columns=training_data.columns, index=training_data.index )
 	values = scaler.transform( test_data )
 	test_data = pd.DataFrame( values, columns=test_data.columns, index=test_data.index )
-	return meta_data, test_data 
+	return training_data, test_data
 
-def prepare_data():	
-	meta_data = pd.read_csv( 'data/ML_Bond_metadata_corrected_dates.csv' )
-	# print meta_data.columns
-	# print test_data.columns
-	meta_data, target_data, test_data = preprocess( meta_data )
-	
-	pickle.dump( meta_data, open( "objects/clean_meta_data.p", "wb" ) )
+def prepare_data():
+	data = pd.read_csv( 'data/Bond_Metadata.csv' )
+	preprocess(data)
+	pickle.dump(data, open( "objects/clean_training_data.p", "wb" ) )
 	# pickle.dump( target_data, open( "objects/clean_target_data.p", "wb" ) )
 	# pickle.dump( test_data, open( "objects/clean_test_data.p", "wb" ) )
 
-if __name__ == '__main__':
-	prepare_data()
+prepare_data()
