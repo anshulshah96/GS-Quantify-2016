@@ -62,17 +62,34 @@ def get_timestamp( s ):
 def get_bool( s ):
 	if s == 'nan':
 		return np.nan
-	if s == 'N':
+	if s.find('0') != -1:
 		return 0
-	if s == 'Y':
+	else:
 		return 1
 
 def preprocess(data):
 	data = clean(data)
+	# data = delete_missing(data)
+	drop_non_numeric(data)
+	data = data.fillna(data.mean())
 	# data = impute(data, 'mean' )
+	# data = data.fillna(method='ffill')
+	
 	# data = tokenize(data)
 	# data = normalize(data)
 	return data
+
+# dropping non-numerical fields
+def drop_non_numeric(data):	
+	# print data.isnull().any()
+	for j in categorical_fields:
+		data.drop(j, axis=1, inplace=True)
+	for j in date_fields:
+		data.drop(j, axis=1, inplace=True)
+	for j in bool_fields:
+		data.drop(j, axis=1, inplace=True)
+	print data.isnull().any()
+	print data.info()
 
 def clean(data):
 	for f in numerical_fields:
@@ -85,30 +102,34 @@ def clean(data):
 		data[f] = data[f].map(str).map(get_bool)
 	return data
 
-def impute( training_data, test_data, mode = 'mean' ):
+def impute( data, mode = 'mean' ):
 	if mode == 'delete':
 		data = delete_missing( data )
 		
 	if mode == 'mean':
 		imp = Imputer(missing_values=np.nan, strategy='mean', axis=0)
-		imp = imp.fit( training_data )
-		values = imp.transform( training_data )
-		training_data = pd.DataFrame( values, index=training_data.index, columns=training_data.columns )
-		values = imp.transform( test_data )
-		test_data = pd.DataFrame( values, index=test_data.index, columns=test_data.columns )
-		for c in training_data:
-			training_data[c] = training_data[c].map(int)
-		for c in test_data:
-			test_data[c] = test_data[c].map(int)
+		imp = imp.fit( data )
+		values = imp.transform( data )
+		data = pd.DataFrame( values, index=data.index, columns=data.columns )
+		for c in data:
+			data[c] = data[c].map(int)
 
 	if mode == 'approximate':
 		data = approximate_missing( data )
 
-	return (training_data, test_data)
+	return data
 
-def delete_missing_values( data ):
-	return data	
-
+def delete_missing( data ):
+	for j in numerical_fields:
+		data = data[np.isfinite(data[j])]
+	for j in categorical_fields:
+		data = data[np.isfinite(data[j])]
+	for j in date_fields:
+		data = data[np.isfinite(data[j])]
+	for j in bool_fields:
+		data = data[np.isfinite(data[j])]
+	return data
+	
 def approximate_missing_values( data ):
 	complete_cols = []
 	incomplete_cols = []
@@ -176,8 +197,10 @@ def normalize(data):
 def prepare_data():
 	data = pd.read_csv( 'data/Bond_Metadata.csv',index_col='isin')
 	preprocess(data)
+	return data
 	# pickle.dump(data, open( "objects/clean_training_data.p", "wb" ) )
 	# pickle.dump( target_data, open( "objects/clean_target_data.p", "wb" ) )
 	# pickle.dump( test_data, open( "objects/clean_test_data.p", "wb" ) )
 
-prepare_data()
+if __name__ == '__main__':
+	prepare_data()

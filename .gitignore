@@ -1,1 +1,3 @@
-ML\ -\ Bond\ Liquidity\ Protection/data/dataset.csv
+ML-BondLiquidity/data/Bond_Metadata.csv
+ML-BondLiquidity/data/dataset.csv
+*.pyc
