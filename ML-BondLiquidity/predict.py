@@ -14,6 +14,8 @@ data.drop('date', axis=1, inplace=True)
 data.drop('price', axis=1, inplace=True)
 # data.info()
 gdata = data.groupby(['isin','side']).sum()
+sum_of_buys = data.groupby(['side']).sum().loc['B']['volume']
+sum_of_sell = data.groupby(['side']).sum().loc['S']['volume']
 # gdata.loc['isin10033','volume']['B']
 
 print "Data Loaded and Cleaned"
@@ -34,14 +36,19 @@ for i,j in gcl:
 		isinlist.append(k)
 
 def z_func(a,b):
-	
-	return random.random()
+    x = (a - b)*(a - b)
+    sum_sq = 0
+    for j in x:
+        sum_sq += j
+    return sum_sq
 
 # Prediction starts
 print "Prediction Starts"
 
 count = 0
 warr = []
+tot_score1 = 0
+tot_score2 = 0
 for k in isinlist:
 	score1 = 0.0
 	score2 = 0.0
@@ -54,16 +61,18 @@ for k in isinlist:
 			score2 = score2 + (1 / (1 + temp ))*gdata.loc[bond,'volume']['S']
 		except Exception as e:
 			pass
+	tot_score1 += score1
+	tot_score2 += score2
 	if(count % 100 == 0):
 		print count, score1, score2
 	count+=1
 	warr.append((k,3*score1,3*score2))
 	
 print "Started writing CSV"
-csvfile = open('names2.csv','w')
+csvfile = open('names_prefinal.csv','w')
 fieldnames = ['isin','buyvolume','sellvolume']
 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 writer.writeheader()
 for tup in warr:
-	writer.writerow({'isin':tup[0],'buyvolume':tup[1],'sellvolume':tup[2]})  
+	writer.writerow({'isin':tup[0],'buyvolume':((tup[1]*sum_of_buys/tot_score1)/30),'sellvolume':((tup[2]*sum_of_sell/tot_score2)/30)})  
 csvfile.close()
