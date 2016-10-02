@@ -8,9 +8,22 @@ from kmeans import *
 data = pd.read_csv('data/dataset.csv')
 data.drop('time', axis=1, inplace=True)
 data.drop('timeofday', axis=1, inplace=True)
-data.drop('date', axis=1, inplace=True)
 data.drop('price', axis=1, inplace=True)
 
+print "Read data"
+def calc_wt(a):
+        date1 = datetime.strptime(a,"%d%b%Y")
+        date2 = datetime.strptime("31May2016","%d%b%Y")
+        delta = date2-date1
+        fact = exp(-delta.days/45.0)
+        return fact
+
+for index,row in data.iterrows():
+        row['volume'] = row['volume']*calc_wt(row['date'])
+
+data.drop('date', axis=1, inplace=True)
+
+print "Data manipulated"
 #Group Data by side
 gdata = data.groupby(['isin','side']).sum()
 sum_of_buys = data.groupby(['side']).sum().loc['B']['volume']
