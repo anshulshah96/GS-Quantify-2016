@@ -11,5 +11,5 @@ if __name__ == '__main__':
 	# arr = prepare_data().as_matrix()
 	arr = prepare_data().values
 	# print "here"
-	ans = get_kmeans(arr,5)
+	ans = get_kmeans(arr,1000)
 	print ans.labels_

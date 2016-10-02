@@ -2,6 +2,7 @@ from sklearn.preprocessing import Imputer, StandardScaler
 from sklearn.feature_extraction import DictVectorizer
 
 import pandas as pd
+from pandas import *
 import numpy as np
 import csv
 import time
@@ -70,11 +71,13 @@ def get_bool( s ):
 def preprocess(data):
 	data = clean(data)
 	# data = delete_missing(data)
-	drop_non_numeric(data)
+	# drop_non_numeric(data)
 	data = data.fillna(data.mean())
+	# print data.info()
+	print data.isnull().any()
+	print data.isinfinite().any()
 	# data = impute(data, 'mean' )
-	# data = data.fillna(method='ffill')
-	
+
 	# data = tokenize(data)
 	# data = normalize(data)
 	return data
