@@ -1,0 +1,20 @@
+To run:
+
+1. Create a local folder data with following files:
+	data/Bond_Metadata.csv ( originally ML_Bond_metadata_corrected_dates.csv)
+	data/dataset.csv
+2. Create a local folder named output. The final output file would be saved at this location
+2. Run using:
+	python predict.py
+
+--------------------------------------------------------
+NOTE:
+--------------------------------------------------------
+
+Tested on ubuntu 14.04 with conda python=2.7 environment and following libraries:
+matplotlib                1.5.3               np111py27_0    conda-forge
+numba                     0.28.1              np111py27_0    defaults
+numpy                     1.11.1                   py27_0    defaults
+pandas                    0.18.1              np111py27_0    defaults
+pickleshare               0.7.4                    py27_0    defaults
+sklearn                   0.0                       <pip>

@@ -1,4 +1,5 @@
-ML-BondLiquidity/data/Bond_Metadata.csv
-ML-BondLiquidity/data/dataset.csv
+ML-BondLiquidity/Solution/data/Bond_Metadata.csv
+ML-BondLiquidity/Solution/data/dataset.csv
+ML-BondLiquidity/Solution/output/dataset.csv
 *.pyc
 .ipynb_checkpoints
