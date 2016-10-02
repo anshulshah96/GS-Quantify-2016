@@ -7,9 +7,8 @@ def get_kmeans(arr, k):
 	return kmeans
 
 if __name__ == '__main__':
-	# arr = np.array([[1, 2], [1, 4], [1, 0], [4, 2], [4, 4], [4, 0]])
-	# arr = prepare_data().as_matrix()
 	arr = prepare_data().values
-	# print "here"
+	print "here"
+	print arr
 	ans = get_kmeans(arr,5)
 	print ans.labels_

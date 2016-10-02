@@ -14,8 +14,6 @@ numerical_fields = [
 	'amtIssued',
 	'amtOutstanding',
 	'coupon',
-	'ratingAgency1Rating',
-	'ratingAgency2Rating',
 ]
 
 categorical_fields = [
@@ -30,6 +28,8 @@ categorical_fields = [
 	'maturityType',
 	'securityType',
 	'paymentRank',
+	'ratingAgency1Rating',
+	'ratingAgency2Rating',
 	'ratingAgency1Watch',
 	'ratingAgency2Watch',
 ]
@@ -46,18 +46,18 @@ date_fields = [
 ]
 
 def get_num(s):
-	x = ''.join( e for e in s if e.isdigit() )
+	x = ''.join( e for e in s if e.isdigit() or e == '.')
 	if x == '':
 		return np.nan
-	return int(x)
+	return float(x)
 
-def get_timestamp( s ):
+def get_days(s):
 	if s == 'nan':
 		return np.nan
 	dt = dateparser.parse( s )
 	epoch = datetime(1970,1,1)
 	diff = dt - epoch
-	return int( diff.total_seconds() )
+	return int(diff.days)
 
 def get_bool( s ):
 	if s == 'nan':
@@ -70,36 +70,36 @@ def get_bool( s ):
 def preprocess(data):
 	data = clean(data)
 	# data = delete_missing(data)
-	drop_non_numeric(data)
+	# drop_non_numeric(data)
 	data = data.fillna(data.mean())
+	# print data.info
 	# data = impute(data, 'mean' )
 	# data = data.fillna(method='ffill')
 	
 	# data = tokenize(data)
-	# data = normalize(data)
+	data = normalize(data)
 	return data
 
-# dropping non-numerical fields
-def drop_non_numeric(data):	
-	# print data.isnull().any()
-	for j in categorical_fields:
-		data.drop(j, axis=1, inplace=True)
-	for j in date_fields:
-		data.drop(j, axis=1, inplace=True)
-	for j in bool_fields:
-		data.drop(j, axis=1, inplace=True)
-	print data.isnull().any()
-	print data.info()
-
 def clean(data):
+	print "Cleaning Data"
 	for f in numerical_fields:
 		data[f] = data[f].map(str).map(get_num)
+	print "Cleaned Numerical Fields"
 	for f in categorical_fields:
 		data[f] = data[f].map(str).map(get_num)
+	print "Cleaned Categorical Fields"
 	for f in date_fields:
-		data[f] = data[f].map(str).map(get_timestamp)
+		data[f] = data[f].map(str).map(get_days)
+	print "Cleaned Date Fields"
 	for f in bool_fields:
 		data[f] = data[f].map(str).map(get_bool)
+	print "Cleaned Bool Fields"
+
+	data = data.fillna(data.mean(),inplace = True)
+
+	data[categorical_fields] = data[categorical_fields].astype(int)
+	data[date_fields] = data[date_fields].astype(int)
+	data[bool_fields] = data[bool_fields].astype(int)	
 	return data
 
 def impute( data, mode = 'mean' ):
@@ -188,11 +188,9 @@ def tokenize( training_data, test_data ):
 
 def normalize(data):
 	scaler = StandardScaler()
-	values = scaler.fit_transform( training_data )
-	training_data = pd.DataFrame( values, columns=training_data.columns, index=training_data.index )
-	values = scaler.transform( test_data )
-	test_data = pd.DataFrame( values, columns=test_data.columns, index=test_data.index )
-	return training_data, test_data
+	values = scaler.fit_transform(data )
+	data = pd.DataFrame( values, columns=data.columns, index=data.index )
+	return data
 
 def prepare_data():
 	data = pd.read_csv( 'data/Bond_Metadata.csv',index_col='isin')
