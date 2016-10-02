@@ -70,11 +70,6 @@ def get_bool( s ):
 
 def preprocess(data):
 	data = clean(data)
-	# data = delete_missing(data)
-	# drop_non_numeric(data)
-	# data = data.fillna(data.mean())
-	# data = impute(data, 'mean' )
-	# data = tokenize(data)
 	data = normalize(data)
 	return data
 
@@ -185,18 +180,14 @@ def tokenize( training_data, test_data ):
 	return new_tr_data, new_ts_data
 
 def normalize(data):
-	scaler = StandardScaler()
-	values = scaler.fit_transform(data )
-	data = pd.DataFrame( values, columns=data.columns, index=data.index )
-	return data
+	df = (data - data.mean()) / (data.max() - data.min())
+	print df.describe()
+	return df
 
 def prepare_data():
 	data = pd.read_csv( 'data/Bond_Metadata.csv',index_col='isin')
-	preprocess(data)
+	data = preprocess(data)
 	return data
-	# pickle.dump(data, open( "objects/clean_training_data.p", "wb" ) )
-	# pickle.dump( target_data, open( "objects/clean_target_data.p", "wb" ) )
-	# pickle.dump( test_data, open( "objects/clean_test_data.p", "wb" ) )
 
 if __name__ == '__main__':
 	prepare_data()
